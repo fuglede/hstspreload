@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -37,6 +38,7 @@ Examples:
   hstspreload +h "max-age=10886400; includeSubDomains; preload"
   hstspreload -h "max-age=10886400; includeSubDomains"
   
+  echo -e "wikipedia.org\nexample.com" | hstspreload batch
   echo -e "wikipedia.org\nexample.com" > domains.txt
   hstspreload batch domains.txt
 
@@ -67,7 +69,11 @@ func main() {
 		os.Exit(0)
 	}
 	if args[0] == "batch" {
-		batch()
+		if len(args) == 1 {
+			batch(os.Stdin)
+		} else {
+			batchFromFile(args[1])
+		}
 	}
 	if len(args) < 2 {
 		printHelp()
@@ -246,9 +252,9 @@ func printList(list []hstspreload.Issue, title string, fs string) {
 	fmt.Println()
 }
 
-func batch() {
+func batch(source io.Reader) {
 	var domains []string
-	sc := bufio.NewScanner(os.Stdin)
+	sc := bufio.NewScanner(source)
 	for sc.Scan() {
 		domains = append(domains, sc.Text())
 	}
@@ -263,4 +269,14 @@ func batch() {
 	}
 
 	os.Exit(0)
+}
+
+func batchFromFile(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		fmt.Printf("%s", err)
+		os.Exit(1)
+	}
+	defer file.Close()
+	batch(file)
 }
